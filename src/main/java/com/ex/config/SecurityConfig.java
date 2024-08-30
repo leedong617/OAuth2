@@ -7,12 +7,20 @@ import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer.UserInfoEndpointConfig;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import com.ex.service.CustomOAuth2UserService;
+
+import lombok.RequiredArgsConstructor;
+
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+	
+	private final CustomOAuth2UserService customOAuth2UserService;
 	
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -22,7 +30,13 @@ public class SecurityConfig {
 		
 		http.httpBasic((basic) -> basic.disable());
 		
-		http.oauth2Login(Customizer.withDefaults());
+		//customOAuth2UserService 등록
+		http.oauth2Login((oauth2LoginConfigurer) -> oauth2LoginConfigurer
+				//OAuth2 로그인 과정에서 사용자 정보를 가져오는 엔드포인트를 설정
+				.userInfoEndpoint((userInfoEndpointConfig) -> userInfoEndpointConfig
+						// 사용자 정보를 가져오는 데 사용할 OAuth2UserService를 설정
+						// 여기서 customOAuth2UserService는 커스터마이즈된 OAuth2UserService 객체
+						.userService(customOAuth2UserService)));
 		
 		http.authorizeHttpRequests((auth) -> auth
 		                .requestMatchers("/", "/oauth2/**", "/login/**").permitAll()
