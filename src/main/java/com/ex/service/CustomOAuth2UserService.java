@@ -10,9 +10,16 @@ import com.ex.dto.CustomOAuth2User;
 import com.ex.dto.GoogleReponse;
 import com.ex.dto.NaverResponse;
 import com.ex.dto.OAuth2Response;
+import com.ex.entity.UserEntity;
+import com.ex.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+	
+	private final UserRepository userRepository;
 	
 	@Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -34,8 +41,26 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
             return null;
         }
+        String username = oAuth2Response.getProvider() + " " + oAuth2Response.getProviderId();
+        UserEntity existData = userRepository.findByUsername(username);
+        
+        String role = "ROLE_USER";
+        
+        if (existData == null) {
+			UserEntity userEntity = new UserEntity();
+			userEntity.setUsername(username);
+			userEntity.setEmail(oAuth2Response.getEmail());
+			userEntity.setRole(role);
+			
+			userRepository.save(userEntity);
+		} else {
+			existData.setUsername(username);
+            existData.setEmail(oAuth2Response.getEmail());
 
-        return new CustomOAuth2User(oAuth2Response, "ROLE_USER");
-				//추후 작성
+            role = existData.getRole();
+
+            userRepository.save(existData);
+		}
+        return new CustomOAuth2User(oAuth2Response, role);
     }
 }
